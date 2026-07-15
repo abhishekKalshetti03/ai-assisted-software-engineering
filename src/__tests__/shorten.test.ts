@@ -575,7 +575,7 @@ describe('Shortener API', () => {
       .get('/api/v1/analytics/nonexistent')
       .expect(404);
 
-    expect(response.body.error).toEqual('Not found');
+    expect(response.body.error).toEqual('Short URL not found.');
   });
 
   it('returns 410 Gone for expired URL on redirect', async () => {
