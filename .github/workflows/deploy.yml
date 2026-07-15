@@ -21,11 +21,13 @@ jobs:
       - name: Smoke test container image
         run: |
           trap 'docker rm -f url-shortener-smoke >/dev/null 2>&1 || true' EXIT
+          MAX_ATTEMPTS=30
           docker run -d --name url-shortener-smoke -e BASE_URL=http://localhost:3000 -p 3000:3000 url-shortener:latest
-          for attempt in {1..30}; do
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
             if curl -fsS http://localhost:3000/api/v1/health >/dev/null; then
               exit 0
             fi
+            echo "Health check attempt $attempt/$MAX_ATTEMPTS failed; retrying..."
             sleep 1
           done
           docker logs url-shortener-smoke
