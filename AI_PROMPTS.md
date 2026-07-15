@@ -38,6 +38,68 @@ Prompt:
 Create a new Express route in this TypeScript project for a GET /health endpoint that returns { status: "ok" }.
 ```
 
+## 4. Real-world engineering scenarios
+
+Prompt:
+
+```text
+Show how to use AI effectively in a software engineering task by breaking requirements into tasks, implementing features, reviewing the output, validating the result, and documenting trade-offs clearly.
+```
+
+Prompt:
+
+```text
+Improve the software design of this project by introducing separation of concerns, better error handling, stronger validation, and clearer service boundaries while keeping the implementation maintainable.
+```
+
+Prompt:
+
+```text
+Review and refine the generated code so it is correct, robust, and defensible, not just functional.
+```
+
+Prompt:
+
+```text
+Demonstrate ownership of AI-assisted code by identifying weaknesses, improving the implementation, and validating the result with tests and build checks.
+```
+
+Prompt:
+
+```text
+Strengthen the testing discipline for this project by adding regression tests for validation, redirect behavior, analytics, and operational endpoints.
+```
+
+Prompt:
+
+```text
+Document the engineering approach clearly so the rationale, design decisions, and validation steps are easy to defend in an evaluation setting.
+```
+
+Prompt:
+
+```text
+Handle a greenfield requirement for this project by creating the initial feature end to end, including implementation, tests, and documentation.
+```
+
+Prompt:
+
+```text
+Handle a brownfield requirement by enhancing or refactoring this existing Express TypeScript service without breaking current behavior.
+```
+
+Prompt:
+
+```text
+Improve tests and documentation for this project by adding regression coverage, clarifying usage, and updating the API contract.
+```
+
+Prompt:
+
+```text
+Resolve an ambiguous requirement by identifying assumptions, documenting trade-offs, and proposing a practical implementation approach.
+```
+
 Prompt:
 
 ```text
