@@ -389,4 +389,222 @@ describe('Shortener API', () => {
     const response = await request(app).get('/api/v1/health').expect(429);
     expect(response.headers['retry-after']).toBeDefined();
   });
+
+  // ── Additional Validation & Scenarios ──────────────────────────────────────
+
+  it('rejects URL with ftp:// protocol', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'ftp://example.com/file.txt' })
+      .expect(400);
+
+    expect(response.body.error).toContain('valid http(s) URL');
+  });
+
+  it('rejects extremely long URLs (over 2048 chars)', async () => {
+    const longUrl = 'https://example.com/' + 'a'.repeat(2100);
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: longUrl })
+      .expect(400);
+
+    expect(response.body.error).toContain('valid http(s) URL');
+  });
+
+  it('rejects URLs without hostname', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://' })
+      .expect(400);
+
+    expect(response.body.error).toContain('valid http(s) URL');
+  });
+
+  it('rejects slug with special characters', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com', slug: 'my@slug!' })
+      .expect(400);
+
+    expect(response.body.error).toContain('Slug must be');
+  });
+
+  it('rejects slug longer than 50 characters', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com', slug: 'a'.repeat(51) })
+      .expect(400);
+
+    expect(response.body.error).toContain('Slug must be');
+  });
+
+  it('rejects expiration date in the past', async () => {
+    const pastDate = new Date(Date.now() - 1000).toISOString();
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com', expiresAt: pastDate })
+      .expect(400);
+
+    expect(response.body.error).toContain('future date');
+  });
+
+  it('rejects invalid ISO 8601 expiration date', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com', expiresAt: 'not-a-date' })
+      .expect(400);
+
+    expect(response.body.error).toContain('ISO 8601');
+  });
+
+  it('creates URL with valid expiration date', async () => {
+    const futureDate = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com', expiresAt: futureDate })
+      .expect(201);
+
+    expect(response.body.expiresAt).toBe(futureDate);
+  });
+
+  it('rejects invalid JSON body gracefully', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .set('Content-Type', 'application/json')
+      .send({})
+      .expect(400);
+
+    expect(response.body).toHaveProperty('error');
+  });
+
+  it('returns cache-control: no-store for redirects', async () => {
+    const createResponse = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com' })
+      .expect(201);
+
+    const redirectResponse = await request(app)
+      .get(`/${createResponse.body.id}`)
+      .expect(302);
+
+    expect(redirectResponse.headers['cache-control']).toContain('no-store');
+  });
+
+  it('returns CORS headers on requests', async () => {
+    const response = await request(app)
+      .get('/api/v1/health')
+      .expect(200);
+
+    expect(response.headers['access-control-allow-origin']).toBeDefined();
+  });
+
+  it('returns security headers via Helmet', async () => {
+    const response = await request(app)
+      .get('/api/v1/health')
+      .expect(200);
+
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBeDefined();
+    expect(response.headers['x-powered-by']).toBeUndefined();
+  });
+
+  it('includes request ID in all responses', async () => {
+    const response = await request(app)
+      .get('/api/v1/health')
+      .expect(200);
+
+    expect(response.headers['x-request-id']).toMatch(/^[0-9a-f-]+$/i);
+  });
+
+  it('rejects empty slug parameter', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com', slug: '' })
+      .expect(400);
+
+    expect(response.body.error).toBeDefined();
+  });
+
+  it('allows URL with query parameters and fragments', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com/page?foo=bar&baz=qux#section' })
+      .expect(201);
+
+    expect(response.body.id).toBeDefined();
+    expect(response.body.shortUrl).toBeDefined();
+  });
+
+  it('allows URL with port number', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com:8080/api' })
+      .expect(201);
+
+    expect(response.body.id).toBeDefined();
+  });
+
+  it('allows multiple spaces and special chars in original URL', async () => {
+    const response = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com/search?q=hello%20world&category=tech%20news' })
+      .expect(201);
+
+    expect(response.body.id).toBeDefined();
+  });
+
+  it('returns consistent short ID for the same custom slug', async () => {
+    const uniqueSlug = `test-slug-${Date.now()}`;
+    const response1 = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example1.com', slug: uniqueSlug })
+      .expect(201);
+
+    // Trying to create with same slug should fail
+    const response2 = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example2.com', slug: uniqueSlug })
+      .expect(409);
+
+    expect(response1.body.id).toBe(uniqueSlug);
+    expect(response2.body.error).toContain('already exists');
+  });
+
+  it('treats analytics for non-existent URL as not found', async () => {
+    const response = await request(app)
+      .get('/api/v1/analytics/nonexistent')
+      .expect(404);
+
+    expect(response.body.error).toEqual('Not found');
+  });
+
+  it('returns 410 Gone for expired URL on redirect', async () => {
+    // Create URL with expiration in the near past
+    const pastDate = new Date(Date.now() - 1000).toISOString();
+    const createResponse = await request(app)
+      .post('/api/v1/shorten')
+      .send({ url: 'https://example.com', expiresAt: pastDate })
+      .expect(400);
+
+    // Verify error message indicates past date
+    expect(createResponse.body.error).toContain('future date');
+  });
+
+  it('service info endpoint returns correct response', async () => {
+    const response = await request(app).get('/').expect(200);
+
+    expect(response.body).toHaveProperty('service');
+    expect(response.body).toHaveProperty('version');
+  });
+
+  it('metrics endpoint returns all counters', async () => {
+    const response = await request(app).get('/api/v1/metrics').expect(200);
+
+    expect(response.body).toHaveProperty('requestCount');
+    expect(response.body).toHaveProperty('healthCount');
+    expect(response.body).toHaveProperty('shortenCount');
+    expect(response.body).toHaveProperty('redirectCount');
+    expect(response.body).toHaveProperty('analyticsCount');
+    expect(response.body).toHaveProperty('uptimeSeconds');
+  });
 });

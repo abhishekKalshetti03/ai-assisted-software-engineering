@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -130,42 +130,39 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">302x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">248x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">38x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">248x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -174,7 +171,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">type MetricsSnapshot = {
   requestCount: number;
   healthCount: number;
@@ -186,39 +186,39 @@
 };
 &nbsp;
 class MetricsService {
-  private readonly _startedAt = <span class="cstat-no" title="statement not covered" >new Date();</span>
-  private requestCount = <span class="cstat-no" title="statement not covered" >0;</span>
-  private healthCount = <span class="cstat-no" title="statement not covered" >0;</span>
-  private shortenCount = <span class="cstat-no" title="statement not covered" >0;</span>
-  private redirectCount = <span class="cstat-no" title="statement not covered" >0;</span>
-  private analyticsCount = <span class="cstat-no" title="statement not covered" >0;</span>
+  private readonly _startedAt = new Date();
+  private requestCount = 0;
+  private healthCount = 0;
+  private shortenCount = 0;
+  private redirectCount = 0;
+  private analyticsCount = 0;
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pu</span>blic incrementRequest(): void {
-<span class="cstat-no" title="statement not covered" >    this.requestCount += 1;</span>
+  public incrementRequest(): void {
+    this.requestCount += 1;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pu</span>blic incrementHealth(): void {
-<span class="cstat-no" title="statement not covered" >    this.healthCount += 1;</span>
+  public incrementHealth(): void {
+    this.healthCount += 1;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pu</span>blic incrementShorten(): void {
-<span class="cstat-no" title="statement not covered" >    this.shortenCount += 1;</span>
+  public incrementShorten(): void {
+    this.shortenCount += 1;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pu</span>blic incrementRedirect(): void {
-<span class="cstat-no" title="statement not covered" >    this.redirectCount += 1;</span>
+  public incrementRedirect(): void {
+    this.redirectCount += 1;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pu</span>blic incrementAnalytics(): void {
-<span class="cstat-no" title="statement not covered" >    this.analyticsCount += 1;</span>
+  public incrementAnalytics(): void {
+    this.analyticsCount += 1;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pu</span>blic startedAt(): string {
-<span class="cstat-no" title="statement not covered" >    return this._startedAt.toISOString();</span>
+  public startedAt(): string {
+    return this._startedAt.toISOString();
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pu</span>blic snapshot(): MetricsSnapshot {
-<span class="cstat-no" title="statement not covered" >    return {</span>
+  public snapshot(): MetricsSnapshot {
+    return {
       requestCount: this.requestCount,
       healthCount: this.healthCount,
       shortenCount: this.shortenCount,
@@ -230,7 +230,7 @@ class MetricsService {
   }
 }
 &nbsp;
-export const metricsService = <span class="cstat-no" title="statement not covered" >new MetricsService();</span>
+export const metricsService = new MetricsService();
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -238,7 +238,7 @@ export const metricsService = <span class="cstat-no" title="statement not covere
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-15T09:01:01.433Z
+                at 2026-07-15T15:27:07.074Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

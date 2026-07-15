@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -100,41 +100,41 @@
 <a name='L35'></a><a href='#L35'>35</a>
 <a name='L36'></a><a href='#L36'>36</a>
 <a name='L37'></a><a href='#L37'>37</a>
-<a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export class AppError extends Error {
@@ -142,36 +142,36 @@
   public readonly code: string;
   public readonly details?: unknown;
 &nbsp;
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(message: string, statusCode = <span class="branch-0 cbranch-no" title="branch not covered" >500,</span> code = <span class="branch-0 cbranch-no" title="branch not covered" >'INTERNAL_SERVER_ERROR',</span> details?: unknown) {
-<span class="cstat-no" title="statement not covered" >    super(message);</span>
-<span class="cstat-no" title="statement not covered" >    this.name = 'AppError';</span>
-<span class="cstat-no" title="statement not covered" >    this.statusCode = statusCode;</span>
-<span class="cstat-no" title="statement not covered" >    this.code = code;</span>
-<span class="cstat-no" title="statement not covered" >    this.details = details;</span>
+  constructor(message: string, statusCode = <span class="branch-0 cbranch-no" title="branch not covered" >500,</span> code = <span class="branch-0 cbranch-no" title="branch not covered" >'INTERNAL_SERVER_ERROR',</span> details?: unknown) {
+    super(message);
+    this.name = 'AppError';
+    this.statusCode = statusCode;
+    this.code = code;
+    this.details = details;
   }
 }
 &nbsp;
 export class ValidationError extends AppError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(message: string, details?: unknown) {
-<span class="cstat-no" title="statement not covered" >    super(message, 400, 'VALIDATION_ERROR', details);</span>
+  constructor(message: string, details?: unknown) {
+    super(message, 400, 'VALIDATION_ERROR', details);
   }
 }
 &nbsp;
 export class NotFoundError extends AppError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(message = <span class="branch-0 cbranch-no" title="branch not covered" >'Not found')</span> {
-<span class="cstat-no" title="statement not covered" >    super(message, 404, 'NOT_FOUND');</span>
+  constructor(message = <span class="branch-0 cbranch-no" title="branch not covered" >'Not found')</span> {
+    super(message, 404, 'NOT_FOUND');
   }
 }
 &nbsp;
 export class GoneError extends AppError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(message = <span class="branch-0 cbranch-no" title="branch not covered" >'This link has expired.')</span> {
-<span class="cstat-no" title="statement not covered" >    super(message, 410, 'GONE');</span>
+  constructor(message = <span class="branch-0 cbranch-no" title="branch not covered" >'This link has expired.')</span> {
+    super(message, 410, 'GONE');
   }
 }
 &nbsp;
 export class ConflictError extends AppError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(message = <span class="branch-0 cbranch-no" title="branch not covered" >'A link with this slug already exists.')</span> {
-<span class="cstat-no" title="statement not covered" >    super(message, 409, 'CONFLICT');</span>
+  constructor(message = <span class="branch-0 cbranch-no" title="branch not covered" >'A link with this slug already exists.')</span> {
+    super(message, 409, 'CONFLICT');
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -181,7 +181,7 @@ export class ConflictError extends AppError {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-15T09:01:01.433Z
+                at 2026-07-15T15:27:07.074Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
