@@ -23,7 +23,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check Azure deployment configuration
+        id: azure-config
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          if [ -n "$(printf '%s' "$AZURE_CLIENT_ID" | tr -d '[:space:]')" ] \
+            && [ -n "$(printf '%s' "$AZURE_TENANT_ID" | tr -d '[:space:]')" ] \
+            && [ -n "$(printf '%s' "$AZURE_SUBSCRIPTION_ID" | tr -d '[:space:]')" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Azure login
+        if: steps.azure-config.outputs.configured == 'true'
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -31,17 +47,21 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set up Docker Buildx
+        if: steps.azure-config.outputs.configured == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Azure Container Registry login
+        if: steps.azure-config.outputs.configured == 'true'
         run: az acr login --name $AZURE_CONTAINER_REGISTRY
 
       - name: Build and push image
+        if: steps.azure-config.outputs.configured == 'true'
         run: |
           docker build -t $AZURE_CONTAINER_REGISTRY.azurecr.io/$IMAGE_NAME:${GITHUB_SHA::12} .
           docker push $AZURE_CONTAINER_REGISTRY.azurecr.io/$IMAGE_NAME:${GITHUB_SHA::12}
 
       - name: Create or update Container App
+        if: steps.azure-config.outputs.configured == 'true'
         run: |
           az containerapp up \
             --name $AZURE_CONTAINER_APP_NAME \
@@ -53,3 +73,7 @@ jobs:
             --cpu 0.5 \
             --memory 1.0Gi \
             --env-vars PORT=3000
+
+      - name: Skip deployment when Azure secrets are not configured
+        if: steps.azure-config.outputs.configured != 'true'
+        run: echo "Skipping Azure deployment because the required Azure GitHub secrets are not configured."
