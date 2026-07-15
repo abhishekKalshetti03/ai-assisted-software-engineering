@@ -30,7 +30,11 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_TENANT_ID" ] && [ -n "$AZURE_SUBSCRIPTION_ID" ]; then
+          client_id="$(printf '%s' "$AZURE_CLIENT_ID" | tr -d '[:space:]')"
+          tenant_id="$(printf '%s' "$AZURE_TENANT_ID" | tr -d '[:space:]')"
+          subscription_id="$(printf '%s' "$AZURE_SUBSCRIPTION_ID" | tr -d '[:space:]')"
+
+          if [ -n "$client_id" ] && [ -n "$tenant_id" ] && [ -n "$subscription_id" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
