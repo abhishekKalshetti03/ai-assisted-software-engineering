@@ -79,13 +79,29 @@ Document the engineering approach clearly so the rationale, design decisions, an
 Prompt:
 
 ```text
-Handle a greenfield requirement for this project by creating the initial feature end to end, including implementation, tests, and documentation.
+Build a greenfield feature for this URL shortener: add custom slug support allowing users to specify a 1-50 character alphanumeric slug (with hyphens). 
+Implement:
+- POST /api/v1/shorten body parameter: "slug" (optional)
+- Validation: alphanumeric+hyphens, 1-50 chars, future expiration date (ISO 8601)
+- Database: store slug in urls.id column, detect 409 Conflict on duplicates
+- Error handling: ValidationError (400), ConflictError (409)
+- Tests: 8 test cases covering valid slugs, duplicates, invalid formats, missing params
+- Documentation: request/response examples with slug parameter
+Include end-to-end implementation from route handler through database to integration tests.
 ```
 
 Prompt:
 
 ```text
-Handle a brownfield requirement by enhancing or refactoring this existing Express TypeScript service without breaking current behavior.
+Build a brownfield enhancement for this URL shortener: add URL expiration support to existing shortened URLs.
+Enhance:
+- Schema: add expires_at TEXT column to urls table (nullable, auto-migrated)
+- Service: isValidFutureDate(expiresAt) validates ISO 8601 future dates
+- Redirect logic: return 410 Gone if URL expired, return 301/302 redirect if valid
+- Storage: save expires_at on POST /api/v1/shorten (optional expiresAt param)
+- API: GET /api/v1/analytics/:id returns expires_at timestamp
+- Tests: 3 test cases for expired URLs, active URLs, and missing expiration
+Ensure backward compatibility: existing URLs without expiration work unchanged, all current tests pass.
 ```
 
 Prompt:
