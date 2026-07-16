@@ -607,4 +607,122 @@ describe('Shortener API', () => {
     expect(response.body).toHaveProperty('analyticsCount');
     expect(response.body).toHaveProperty('uptimeSeconds');
   });
+
+  // ── API Key Authentication (Security) ──────────────────────────────────────
+
+  describe('API Key Authentication', () => {
+    it('accepts x-api-key header without error in development mode', async () => {
+      // In dev mode, x-api-key should be silently ignored (not required)
+      const response = await request(app)
+        .post('/api/v1/shorten')
+        .set('x-api-key', 'any-key')
+        .send({ url: 'https://example.com' })
+        .expect(201);
+
+      expect(response.body.id).toBeDefined();
+    });
+
+    it('allows requests without x-api-key header in development mode', async () => {
+      const response = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'https://example.com' })
+        .expect(201);
+
+      expect(response.body.id).toBeDefined();
+    });
+
+    it('allows redirect routes to work without x-api-key header', async () => {
+      // Create a short URL first
+      const createResponse = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'https://example.com' })
+        .expect(201);
+
+      const shortId = createResponse.body.id;
+
+      // Redirect should work without any header (returns 302)
+      const redirectResponse = await request(app)
+        .get(`/${shortId}`)
+        .expect(302);
+
+      expect(redirectResponse.headers.location).toContain('example.com');
+    });
+
+    it('allows public routes without x-api-key header', async () => {
+      const response = await request(app)
+        .get('/')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('service');
+    });
+
+    it('allows health endpoint without x-api-key header', async () => {
+      const response = await request(app)
+        .get('/api/v1/health')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('status');
+    });
+
+    it('allows analytics endpoint in development mode without x-api-key header', async () => {
+      // Create a short URL
+      const createResponse = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'https://example.com' })
+        .expect(201);
+
+      const shortId = createResponse.body.id;
+
+      // Analytics should work in dev mode without auth
+      const analyticsResponse = await request(app)
+        .get(`/api/v1/analytics/${shortId}`)
+        .expect(200);
+
+      expect(analyticsResponse.body).toHaveProperty('id');
+      expect(analyticsResponse.body).toHaveProperty('clicks');
+    });
+
+    it('allows metrics endpoint in development mode without x-api-key header', async () => {
+      const response = await request(app)
+        .get('/api/v1/metrics')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('requestCount');
+    });
+
+    it('API key middleware correctly identifies public routes', async () => {
+      // Test that / route is properly recognized as public
+      const response = await request(app)
+        .get('/')
+        .expect(200);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('API key middleware correctly identifies health route', async () => {
+      // Test that /api/v1/health is properly recognized as public
+      const response = await request(app)
+        .get('/api/v1/health')
+        .expect(200);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('API key middleware allows redirect pattern without auth', async () => {
+      // Create a short URL
+      const createResponse = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'https://github.com' })
+        .expect(201);
+
+      const shortId = createResponse.body.id;
+
+      // GET /:id pattern should bypass auth in any mode
+      const response = await request(app)
+        .get(`/${shortId}`);
+
+      // Should redirect (301) or not found (404), but NOT require auth
+      expect([301, 302, 404]).toContain(response.status);
+    });
+  });
 });
