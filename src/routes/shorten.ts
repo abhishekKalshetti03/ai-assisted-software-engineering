@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 
 import { shortenUrl } from '../services/urlService';
 import { metricsService } from '../services/metricsService';
+import { prometheusMetrics } from '../middleware/prometheus';
 import { config } from '../config';
 
 const router = Router();
@@ -41,6 +42,9 @@ router.post('/', (req: Request, res: Response, next: NextFunction) => {
     // - Slug format, length, uniqueness
     // - Expiration format, future date requirement
     const result = shortenUrl(url ?? '', config.baseUrl, { slug, expiresAt });
+
+    // AI: Track Prometheus metrics for URL creation
+    prometheusMetrics.shortenerUrlsCreatedTotal.inc();
 
     // AI: Return 201 Created with result (REST semantics)
     return res.status(201).json(result);

@@ -2,9 +2,12 @@ import {
   createShortUrlRecord,
   getAnalyticsRecordById,
   getOriginalUrlRecordById,
+  getDetailedAnalytics,
   incrementClickCount,
+  recordClick,
   slugExists,
 } from '../database/db';
+import { isSSRFRisk } from '../utils/ssrf';
 import { ConflictError, GoneError, NotFoundError, ValidationError } from '../utils/errors';
 
 /**
@@ -47,6 +50,7 @@ const SLUG_PATTERN = /^[a-z0-9-]+$/i;
  * 4. URL parsing (constructor validates format)
  * 5. Protocol check (http/https only)
  * 6. Hostname requirement (must exist)
+ * 7. SSRF check (hostname not private/loopback/link-local)
  */
 function isValidHttpUrl(value: string): boolean {
   // AI Check 1: Type validation
@@ -69,7 +73,12 @@ function isValidHttpUrl(value: string): boolean {
     // AI Check 5: Hostname requirement (must be present, length > 0)
     const hasHostname = parsed.hostname.length > 0;
     
-    return isValidProtocol && hasHostname;
+    // AI Check 6: SSRF prevention - block private/loopback/link-local addresses
+    // Design: Synchronous check of hostname against private IP ranges
+    // Catches direct IP addresses; full DNS resolution would require async handling
+    const isNotSSRFRisk = !isSSRFRisk(parsed.hostname);
+    
+    return isValidProtocol && hasHostname && isNotSSRFRisk;
   } catch {
     // URL constructor threw error - invalid format
     return false;
@@ -134,6 +143,19 @@ export interface AnalyticsResult {
   expiresAt: string | null;
 }
 
+export interface DetailedAnalyticsResult {
+  id: string;
+  originalUrl: string;
+  totals: {
+    clicks: number;
+    createdAt: string;
+    expiresAt: string | null;
+  };
+  timeseries: Array<{ date: string; count: number }>;
+  topReferrers: Array<{ referrer: string; count: number }>;
+  userAgentBreakdown: Array<{ userAgent: string; count: number }>;
+}
+
 export function shortenUrl(originalUrl: string, baseUrl: string, options: ShortenOptions = {}): ShortenResult {
   /**
    * AI Prompt Execution: "Shorten a URL with optional slug and expiration"
@@ -152,6 +174,19 @@ export function shortenUrl(originalUrl: string, baseUrl: string, options: Shorte
 
   // AI Step 1: URL validation with detailed error
   if (!isValidHttpUrl(originalUrl)) {
+    // AI Security: Provide more specific error for SSRF attempts
+    try {
+      const parsed = new URL(originalUrl);
+      if (isSSRFRisk(parsed.hostname)) {
+        throw new ValidationError('Cannot shorten URLs to private, loopback, or link-local addresses (SSRF prevention).');
+      }
+    } catch (e) {
+      // If URL parsing itself failed, that's the actual error
+      if (!(e instanceof ValidationError)) {
+        throw new ValidationError('A valid http(s) URL is required.');
+      }
+      throw e;
+    }
     // AI: Specific reason helps user understand the issue
     throw new ValidationError('A valid http(s) URL is required.');
   }
@@ -234,14 +269,14 @@ export function redirectUrl(id: string): { originalUrl: string } {
   return { originalUrl: record.originalUrl };
 }
 
-export function getAnalytics(id: string): AnalyticsResult {
+export function getAnalytics(id: string): DetailedAnalyticsResult {
   /**
-   * AI Prompt Execution: "Get analytics for shortened URL"
+   * AI Prompt Execution: "Get detailed analytics for shortened URL"
    *
    * Steps:
    * 1. Validate ID format
-   * 2. Lookup analytics record in database
-   * 3. Return click count and metadata
+   * 2. Lookup detailed analytics record in database
+   * 3. Return structured analytics with timeseries, referrers, user agents
    *
    * Error handling:
    * - ValidationError (400): Invalid ID format
@@ -253,19 +288,24 @@ export function getAnalytics(id: string): AnalyticsResult {
     throw new ValidationError('Invalid short URL ID format.');
   }
 
-  // AI Step 2: Lookup analytics data
-  const record = getAnalyticsRecordById(id);
-  if (!record) {
+  // AI Step 2: Lookup detailed analytics data
+  const detailedRecord = getDetailedAnalytics(id);
+  if (!detailedRecord) {
     // AI: 404 if ID not found in database
     throw new NotFoundError('Short URL not found.');
   }
 
-  // AI Step 3: Return formatted analytics
+  // AI Step 3: Return structured detailed analytics
   return {
-    id: record.id,
-    originalUrl: record.originalUrl,
-    clicks: record.clicks,
-    createdAt: record.createdAt,
-    expiresAt: record.expiresAt,
+    id: detailedRecord.id,
+    originalUrl: detailedRecord.originalUrl,
+    totals: {
+      clicks: detailedRecord.totalClicks,
+      createdAt: detailedRecord.createdAt,
+      expiresAt: detailedRecord.expiresAt,
+    },
+    timeseries: detailedRecord.timeseries,
+    topReferrers: detailedRecord.topReferrers,
+    userAgentBreakdown: detailedRecord.userAgentBreakdown,
   };
 }

@@ -15,6 +15,7 @@ import * as path from 'node:path';
  * - DB_PATH: Database file location (defaults to ./data/shortener.db)
  * - RATE_LIMIT_MAX_REQUESTS: Default 120 requests
  * - RATE_LIMIT_WINDOW_MS: Default 60000ms (1 minute)
+ * - RATE_LIMITER_BACKEND: "memory" (default) or "redis" for distributed rate limiting
  * - CORS_ORIGIN: Default '*' in dev, comma-separated list in prod
  * - REDIS_URL: Optional, for distributed rate limiting
  * - API_KEYS: Optional, comma-separated list for production auth
@@ -28,6 +29,7 @@ export interface AppConfig {
   dbPath: string;
   rateLimitMaxRequests: number;
   rateLimitWindowMs: number;
+  rateLimiterBackend: 'memory' | 'redis';
   corsOrigin: string | string[];
   redisUrl?: string;
   apiKeys?: string[];
@@ -72,6 +74,16 @@ function loadConfig(): AppConfig {
   const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 120);
   const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000);
 
+  // AI: Rate limiter backend selection
+  // - "memory": In-memory rate limiting (default, suitable for single-instance)
+  // - "redis": Redis-backed rate limiting (requires REDIS_URL, suitable for multi-instance)
+  const rateLimiterBackendEnv = process.env.RATE_LIMITER_BACKEND ?? 'memory';
+  if (!['memory', 'redis'].includes(rateLimiterBackendEnv)) {
+    console.error(`[config] FATAL: RATE_LIMITER_BACKEND must be "memory" or "redis", got "${rateLimiterBackendEnv}".`);
+    process.exit(1);
+  }
+  const rateLimiterBackend = rateLimiterBackendEnv as 'memory' | 'redis';
+
   // AI: CORS configuration (environment-aware)
   // - Dev: default to '*' for convenience
   // - Prod: require explicit origin list for security (fail-secure)
@@ -109,6 +121,7 @@ function loadConfig(): AppConfig {
     dbPath,
     rateLimitMaxRequests,
     rateLimitWindowMs,
+    rateLimiterBackend,
     corsOrigin,
     redisUrl,
     apiKeys,

@@ -11,9 +11,27 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      RATE_LIMITER_BACKEND: ${RATE_LIMITER_BACKEND:-memory}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     restart: unless-stopped
+    depends_on:
+      - redis
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
       interval: 30s
       timeout: 5s
       retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: url-shortener-redis
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles:
+      - redis

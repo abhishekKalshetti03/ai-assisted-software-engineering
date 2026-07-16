@@ -68,9 +68,22 @@ db.exec(`
     expires_at TEXT
   );
 
+  -- Clicks tracking table for analytics
+  CREATE TABLE IF NOT EXISTS clicks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    short_id TEXT NOT NULL,
+    clicked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    referrer TEXT,
+    user_agent TEXT,
+    ip_hash TEXT,
+    FOREIGN KEY (short_id) REFERENCES urls(id) ON DELETE CASCADE
+  );
+
   -- Indexes for query optimization
   CREATE INDEX IF NOT EXISTS idx_urls_created_at ON urls(created_at);
   CREATE INDEX IF NOT EXISTS idx_urls_expires_at ON urls(expires_at);
+  CREATE INDEX IF NOT EXISTS idx_clicks_short_id ON clicks(short_id);
+  CREATE INDEX IF NOT EXISTS idx_clicks_clicked_at ON clicks(clicked_at);
 `);
 
 // Migrate existing databases: add expires_at column if absent
@@ -102,6 +115,40 @@ const stmtUpdateClickCount = db.prepare(
 const stmtGetAnalytics = db.prepare(
   'SELECT id, original_url, click_count, created_at, expires_at FROM urls WHERE id = ? LIMIT 1',
 );
+
+// Clicks tracking prepared statements
+const stmtInsertClick = db.prepare(
+  'INSERT INTO clicks (short_id, clicked_at, referrer, user_agent, ip_hash) VALUES (?, ?, ?, ?, ?)',
+);
+const stmtGetClicksTimeseries = db.prepare(`
+  SELECT 
+    DATE(clicked_at) as date,
+    COUNT(*) as count
+  FROM clicks
+  WHERE short_id = ?
+  GROUP BY DATE(clicked_at)
+  ORDER BY date ASC
+`);
+const stmtGetClicksReferrers = db.prepare(`
+  SELECT 
+    COALESCE(referrer, 'direct') as referrer,
+    COUNT(*) as count
+  FROM clicks
+  WHERE short_id = ?
+  GROUP BY referrer
+  ORDER BY count DESC
+  LIMIT 10
+`);
+const stmtGetClicksUserAgents = db.prepare(`
+  SELECT 
+    COALESCE(user_agent, 'unknown') as user_agent,
+    COUNT(*) as count
+  FROM clicks
+  WHERE short_id = ?
+  GROUP BY user_agent
+  ORDER BY count DESC
+  LIMIT 10
+`);
 
 function generateId(): string {
   // AI Security: Use cryptographically secure random bytes instead of Math.random()
@@ -248,6 +295,52 @@ export function getAnalyticsRecordById(id: string): UrlRecord | undefined {
     clicks: row.click_count,
     createdAt: row.created_at,
     expiresAt: row.expires_at ?? null,
+  };
+}
+
+/**
+ * Record a click for analytics tracking
+ * 
+ * Stores click metadata: timestamp, referrer, user agent, IP hash
+ * Used for enriched analytics: timeseries, top referrers, user agent breakdown
+ */
+export function recordClick(shortId: string, referrer?: string, userAgent?: string, ipHash?: string): void {
+  stmtInsertClick.run(shortId, new Date().toISOString(), referrer ?? null, userAgent ?? null, ipHash ?? null);
+}
+
+/**
+ * Get detailed analytics with timeseries, referrers, and user agent breakdown
+ */
+export interface DetailedAnalytics {
+  id: string;
+  originalUrl: string;
+  totalClicks: number;
+  createdAt: string;
+  expiresAt: string | null;
+  timeseries: Array<{ date: string; count: number }>;
+  topReferrers: Array<{ referrer: string; count: number }>;
+  userAgentBreakdown: Array<{ userAgent: string; count: number }>;
+}
+
+export function getDetailedAnalytics(id: string): DetailedAnalytics | undefined {
+  const record = getAnalyticsRecordById(id);
+  if (!record) {
+    return undefined;
+  }
+
+  const timeseries = (stmtGetClicksTimeseries.all(id) as Array<{ date: string; count: number }>) ?? [];
+  const topReferrers = (stmtGetClicksReferrers.all(id) as Array<{ referrer: string; count: number }>) ?? [];
+  const userAgentBreakdown = (stmtGetClicksUserAgents.all(id) as Array<{ user_agent: string; count: number }>) ?? [];
+
+  return {
+    id: record.id,
+    originalUrl: record.originalUrl,
+    totalClicks: record.clicks,
+    createdAt: record.createdAt,
+    expiresAt: record.expiresAt,
+    timeseries,
+    topReferrers,
+    userAgentBreakdown: userAgentBreakdown.map((ua) => ({ userAgent: ua.user_agent, count: ua.count })),
   };
 }
 

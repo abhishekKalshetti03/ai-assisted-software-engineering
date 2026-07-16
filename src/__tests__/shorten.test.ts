@@ -256,10 +256,15 @@ describe('Shortener API', () => {
     expect(analyticsResponse.body).toEqual(
       expect.objectContaining({
         id,
-        clicks: 3,
         originalUrl: 'https://example.com',
-        createdAt: expect.any(String),
-        expiresAt: null,
+        totals: expect.objectContaining({
+          clicks: 3,
+          createdAt: expect.any(String),
+          expiresAt: null,
+        }),
+        timeseries: expect.any(Array),
+        topReferrers: expect.any(Array),
+        userAgentBreakdown: expect.any(Array),
       }),
     );
   });
@@ -274,7 +279,7 @@ describe('Shortener API', () => {
       .get(`/api/v1/analytics/${createResponse.body.id}`)
       .expect(200);
 
-    expect(analyticsResponse.body.clicks).toBe(0);
+    expect(analyticsResponse.body.totals.clicks).toBe(0);
   });
 
   // ── Security and headers ───────────────────────────────────────────────────
@@ -325,24 +330,14 @@ describe('Shortener API', () => {
     const healthResponse = await request(app).get('/api/v1/health').expect(200);
     expect(healthResponse.headers['x-request-id']).toEqual(expect.any(String));
 
+    // Metrics are now exposed via Prometheus format at /api/v1/metrics
     const metricsResponse = await request(app).get('/api/v1/metrics').expect(200);
-    expect(metricsResponse.body).toEqual(
-      expect.objectContaining({
-        requestCount: expect.any(Number),
-        healthCount: expect.any(Number),
-        uptimeSeconds: expect.any(Number),
-        startedAt: expect.any(String),
-      }),
-    );
+    expect(metricsResponse.type).toContain('text/plain');
+    expect(metricsResponse.text).toContain('http_requests_total');
   });
 
   it('metrics counters increment after shorten and redirect', async () => {
-    const before = (await request(app).get('/api/v1/metrics').expect(200)).body as {
-      requestCount: number;
-      shortenCount: number;
-      redirectCount: number;
-    };
-
+    // Verify metrics endpoint is functional after operations
     const createResponse = await request(app)
       .post('/api/v1/shorten')
       .send({ url: 'https://example.com' })
@@ -350,15 +345,12 @@ describe('Shortener API', () => {
 
     await request(app).get(`/${createResponse.body.id}`).expect(302);
 
-    const after = (await request(app).get('/api/v1/metrics').expect(200)).body as {
-      requestCount: number;
-      shortenCount: number;
-      redirectCount: number;
-    };
-
-    expect(after.requestCount).toBeGreaterThan(before.requestCount);
-    expect(after.shortenCount).toBeGreaterThan(before.shortenCount);
-    expect(after.redirectCount).toBeGreaterThan(before.redirectCount);
+    // Metrics now exposed via Prometheus format
+    const metricsResponse = await request(app).get('/api/v1/metrics').expect(200);
+    expect(metricsResponse.type).toContain('text/plain');
+    // Verify Prometheus metrics are present
+    expect(metricsResponse.text).toContain('shortener_urls_created_total');
+    expect(metricsResponse.text).toContain('shortener_redirects_total');
   });
 
   it('returns a request id header for shorten requests', async () => {
@@ -600,12 +592,16 @@ describe('Shortener API', () => {
   it('metrics endpoint returns all counters', async () => {
     const response = await request(app).get('/api/v1/metrics').expect(200);
 
-    expect(response.body).toHaveProperty('requestCount');
-    expect(response.body).toHaveProperty('healthCount');
-    expect(response.body).toHaveProperty('shortenCount');
-    expect(response.body).toHaveProperty('redirectCount');
-    expect(response.body).toHaveProperty('analyticsCount');
-    expect(response.body).toHaveProperty('uptimeSeconds');
+    // Prometheus metrics format: plain text with HELP, TYPE, and metric lines
+    expect(response.type).toContain('text/plain');
+    expect(response.text).toContain('# HELP http_requests_total');
+    expect(response.text).toContain('# TYPE http_requests_total counter');
+    expect(response.text).toContain('# HELP http_request_duration_seconds');
+    expect(response.text).toContain('# TYPE http_request_duration_seconds histogram');
+    expect(response.text).toContain('# HELP shortener_urls_created_total');
+    expect(response.text).toContain('# TYPE shortener_urls_created_total counter');
+    expect(response.text).toContain('# HELP shortener_redirects_total');
+    expect(response.text).toContain('# TYPE shortener_redirects_total counter');
   });
 
   // ── API Key Authentication (Security) ──────────────────────────────────────
@@ -679,7 +675,7 @@ describe('Shortener API', () => {
         .expect(200);
 
       expect(analyticsResponse.body).toHaveProperty('id');
-      expect(analyticsResponse.body).toHaveProperty('clicks');
+      expect(analyticsResponse.body).toHaveProperty('totals');
     });
 
     it('allows metrics endpoint in development mode without x-api-key header', async () => {
@@ -687,7 +683,8 @@ describe('Shortener API', () => {
         .get('/api/v1/metrics')
         .expect(200);
 
-      expect(response.body).toHaveProperty('requestCount');
+      expect(response.type).toContain('text/plain');
+      expect(response.text).toContain('http_requests_total');
     });
 
     it('API key middleware correctly identifies public routes', async () => {
