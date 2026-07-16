@@ -10,11 +10,11 @@ This is a scalable URL shortening service with the following capabilities:
 - **Redirects:** Redirect short URLs to original destinations with click tracking
 - **Analytics:** View click counts and URL metadata
 - **Health Checks:** Kubernetes-compatible health and readiness probes
-- **Metrics:** In-process request counters and uptime tracking
-- **Security:** Rate limiting, CORS control, API key authentication, input validation
-- **Production-Ready:** Structured JSON logging, graceful shutdown, database auto-migration
+- **Metrics:** Prometheus-compatible metrics endpoint (`/api/v1/metrics`) with request counters, latency histograms, and uptime
+- **Security:** Rate limiting, CORS control, API key authentication, input validation, SSRF prevention
+- **Production-Ready:** Structured JSON logging, graceful shutdown, database auto-migration, trust-proxy support
 - **Scalability:** Redis-backed rate limiter for horizontal scaling
-- **Testing:** Comprehensive test suite (32 integration tests)
+- **Testing:** Comprehensive test suite (70 integration tests)
 - **Code Quality:** TypeScript strict mode, code coverage tracking, pre-commit hooks
 
 ## Quick Start
@@ -72,7 +72,7 @@ Expected response:
 npm test
 ```
 
-All 32 tests pass. Tests use actual Express app (no mocks).
+All 70 tests pass. Tests use actual Express app (no mocks).
 
 ### Development Mode (Live Reload)
 
@@ -121,7 +121,18 @@ curl http://localhost:3000/api/v1/analytics/abc123
 
 Response:
 ```json
-{"id":"abc123","originalUrl":"https://www.example.com","clicks":1,"createdAt":"2026-07-15T08:50:00Z","expiresAt":null}
+{
+  "id": "abc123",
+  "originalUrl": "https://www.example.com",
+  "totals": {
+    "clicks": 1,
+    "createdAt": "2026-07-15T08:50:00Z",
+    "expiresAt": null
+  },
+  "timeseries": [{"date": "2026-07-15", "count": 1}],
+  "topReferrers": [],
+  "userAgentBreakdown": []
+}
 ```
 
 ### View Metrics
@@ -130,9 +141,19 @@ Response:
 curl http://localhost:3000/api/v1/metrics
 ```
 
-Response:
-```json
-{"totalRequests":150,"requestCount":150,"healthCount":35,"shortenCount":10,"redirectCount":100,"analyticsCount":5,"uptimeSeconds":3600,"startedAt":"2026-07-15T08:00:00Z"}
+Response (Prometheus text format, `Content-Type: text/plain; version=0.0.4`):
+```
+# HELP http_requests_total Total number of HTTP requests
+# TYPE http_requests_total counter
+http_requests_total{method="GET",route="/api/v1/health",status="200"} 35
+# HELP http_request_duration_seconds HTTP request latency in seconds
+# TYPE http_request_duration_seconds histogram
+# HELP shortener_urls_created_total Total number of URLs shortened
+# TYPE shortener_urls_created_total counter
+shortener_urls_created_total 10
+# HELP shortener_redirects_total Total number of redirects served
+# TYPE shortener_redirects_total counter
+shortener_redirects_total 100
 ```
 
 ## Environment Variables
@@ -145,8 +166,10 @@ Response:
 | `DB_PATH` | `data/shortener.db` | No | SQLite database file path |
 | `RATE_LIMIT_MAX_REQUESTS` | `120` | No | Max requests per IP per window |
 | `RATE_LIMIT_WINDOW_MS` | `60000` | No | Rate limit window in milliseconds |
+| `RATE_LIMITER_BACKEND` | `memory` | No | Rate limiter backend: `memory` (single-instance) or `redis` (multi-instance) |
+| `TRUST_PROXY` | `false` | No | Trust reverse proxy headers for real client IP (`true`, `1`, `loopback`, etc.) |
 | `CORS_ORIGIN` | `*` | No | Allowed CORS origins (comma-separated) |
-| `REDIS_URL` | unset | No | Redis URL for distributed rate limiting |
+| `REDIS_URL` | unset | No | Redis URL for distributed rate limiting (requires `RATE_LIMITER_BACKEND=redis`) |
 | `API_KEYS` | unset | No | Comma-separated API keys for production auth |
 
 ### Configuration File
@@ -175,6 +198,7 @@ npm start
 
 ```bash
 REDIS_URL="redis://localhost:6379" \
+RATE_LIMITER_BACKEND="redis" \
 BASE_URL="https://short.example.com" \
 API_KEYS="prod-key-1,prod-key-2" \
 NODE_ENV="production" \
@@ -191,10 +215,16 @@ docker run -p 3000:3000 \
   url-shortener
 ```
 
-### With Docker Compose (includes Redis)
+### With Docker Compose
 
+Default (in-memory rate limiting):
 ```bash
 docker-compose up
+```
+
+With Redis rate limiting:
+```bash
+docker-compose --profile redis up
 ```
 
 ## npm Scripts
@@ -204,8 +234,8 @@ docker-compose up
 | `npm run dev` | Development mode with live reload |
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run compiled server |
-| `npm test` | Run test suite (32 tests) |
-| `npm run coverage` | Generate code coverage report |
+| `npm test` | Run test suite (70 tests) |
+| `npm run coverage` | Run tests with coverage report (outputs to `coverage/`) |
 | `npm run lint` | Type check without build |
 
 ## Troubleshooting
@@ -216,7 +246,8 @@ docker-compose up
 | `EADDRINUSE: address already in use` | Port 3000 taken | Use `PORT=3001 npm start` |
 | `database disk image is malformed` | Corrupt SQLite file | Delete `data/shortener.db` and restart |
 | Tests fail with `429 Too Many Requests` | Rate limiter state leaking | Run `npm test -- --runInBand` |
-| `REDIS_URL connection failed` | Redis not running | Start Redis or remove `REDIS_URL` |
+| `REDIS_URL connection failed` | Redis not running | Start Redis or switch to `RATE_LIMITER_BACKEND=memory` |
+| `500 Authentication not properly configured` | `NODE_ENV=production` with no `API_KEYS` set | Set `API_KEYS` env var before deploying to production |
 | `401 Missing x-api-key` in production | Auth required but no API key | Set `API_KEYS` env var in production |
 | Git commit blocked by pre-commit hook | TypeScript errors in staged files | Run `npm run lint` to see errors |
 
