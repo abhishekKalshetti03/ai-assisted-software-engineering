@@ -51,9 +51,15 @@ export function apiKeyAuth(req: AuthenticatedRequest, res: Response, next: NextF
   // AI Step 4a: Check if API keys are configured in production
   const validKeys = config.apiKeys;
   if (!validKeys || validKeys.length === 0) {
-    // AI: No keys configured, allow access
-    // Admin must configure API_KEYS env var to enforce authentication
-    return next();
+    // AI Security: Fail-closed (fail-safe)
+    // In production, empty API_KEYS on protected route is a misconfiguration
+    // Return 500 to signal deployment issue, not allow access
+    console.error(
+      '[SECURITY] Production mode with no API_KEYS configured. ' +
+      'Protected endpoint accessed without authentication. This is a deployment error.'
+    );
+    res.status(500).json({ error: 'Authentication not properly configured' });
+    return;
   }
 
   // AI Step 4b: API keys ARE configured, require authentication

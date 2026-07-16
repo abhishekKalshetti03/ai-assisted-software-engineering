@@ -165,11 +165,11 @@ export function shortenUrl(originalUrl: string, baseUrl: string, options: Shorte
       );
     }
     
-    // AI Step 2b: Slug uniqueness validation
-    if (slugExists(options.slug)) {
-      // AI: 409 Conflict is semantically correct HTTP status
-      throw new ConflictError(`A link with slug "${options.slug}" already exists.`);
-    }
+    // AI Step 2b: Slug uniqueness handled by database UNIQUE constraint
+    // REMOVED pre-check: slugExists() creates TOCTOU (time-of-check-time-of-use) race condition
+    // Between check and insert, another request could insert same slug
+    // Database will enforce uniqueness; duplicate inserts raise SQLITE_CONSTRAINT_UNIQUE
+    // This is handled in createShortUrlRecord() via try-catch on insert
   }
 
   // AI Step 3: Expiration date validation

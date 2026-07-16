@@ -1,7 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { randomBytes } from 'node:crypto';
 import Database from 'better-sqlite3';
 import { config } from '../config';
+import { ConflictError } from '../utils/errors';
 
 /**
  * SQL Runtime Optimization Strategy
@@ -102,7 +104,11 @@ const stmtGetAnalytics = db.prepare(
 );
 
 function generateId(): string {
-  return Math.random().toString(36).slice(2, 8);
+  // AI Security: Use cryptographically secure random bytes instead of Math.random()
+  // Using hex encoding ensures all characters are alphanumeric [0-9a-f]
+  // 4 bytes = 8 hex chars, perfect for slug validation pattern [a-z0-9-]
+  // Provides ~32 bits of entropy (collision probability ≈ 1 in 2^32)
+  return randomBytes(4).toString('hex');
 }
 
 export interface UrlRecord {
@@ -147,9 +153,18 @@ export function createShortUrlRecord(
 
   if (options.slug) {
     // Custom slug: single insert, let UNIQUE constraint surface conflicts
-    // Query execution: O(1) INSERT with PRIMARY KEY
-    stmtInsertUrl.run(id, originalUrl, options.expiresAt ?? null);
-    return { id, shortUrl: `${baseUrl}/${id}`, expiresAt: options.expiresAt ?? null };
+    // AI Security Fix: Catch SQLITE_CONSTRAINT_UNIQUE and convert to ConflictError
+    try {
+      // Query execution: O(1) INSERT with PRIMARY KEY
+      stmtInsertUrl.run(id, originalUrl, options.expiresAt ?? null);
+      return { id, shortUrl: `${baseUrl}/${id}`, expiresAt: options.expiresAt ?? null };
+    } catch (error) {
+      // Database enforces UNIQUE constraint; duplicate slug raises SQLITE_CONSTRAINT_UNIQUE
+      if (error instanceof Error && (error.message.includes('UNIQUE') || (error as any).code === 'SQLITE_CONSTRAINT')) {
+        throw new ConflictError(`A link with slug "${id}" already exists.`);
+      }
+      throw error;
+    }
   }
 
   // Random slug: retry on collision (collision probability = 1 / 2^48, extremely rare)
