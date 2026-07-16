@@ -13,7 +13,7 @@ SLIs are the measured signals used to assess whether the service is behaving wit
 | **Availability** | Proportion of HTTP requests that return a non-5xx response | Access logs / `GET /metrics` |
 | **Latency (p95)** | 95th-percentile end-to-end response time for successful requests | Request logger duration field |
 | **Error rate** | Proportion of requests returning 5xx over a rolling window | Access logs |
-| **Health check success** | `GET /health` returns HTTP 200 | Uptime monitor / Kubernetes readiness probe |
+| **Health check success** | `GET /api/v1/health/ready` returns HTTP 200 | Uptime monitor / Kubernetes readiness probe |
 | **Redirect correctness** | `GET /:id` returns HTTP 302 with a valid `Location` header | Synthetic probe |
 | **Rate limit headroom** | Proportion of requests returning HTTP 429 | Access logs |
 
@@ -28,7 +28,7 @@ SLOs set the reliability targets the team commits to maintaining.
 | Availability | ≥ 99.9 % of requests succeed (non-5xx) | Rolling 30 days |
 | Latency p95 | ≤ 300 ms for shorten and redirect | Rolling 7 days |
 | Error rate | < 1 % of all requests return 5xx | Rolling 30 days |
-| Health check | `GET /health` succeeds within 1 s ≥ 99.9 % of the time | Rolling 30 days |
+| Health check | `GET /api/v1/health/ready` succeeds within 1 s ≥ 99.9 % of the time | Rolling 30 days |
 | Redirect correctness | 100 % of valid short-URL lookups return a correct 302 | Rolling 7 days |
 
 ---
@@ -57,7 +57,7 @@ An error budget is the allowed downtime or failures implied by the SLO.
 |-------|---------|----------|--------|
 | High error rate | 5xx rate > 2 % over 5 minutes | Critical | Page on-call; follow runbook section 6.1 |
 | Elevated latency | p95 > 500 ms over 10 minutes | Warning | Investigate DB and connection pool |
-| Health check failing | `/health` non-200 for 2 consecutive probes | Critical | Page on-call; follow runbook section 6.2 |
+| Health check failing | `/api/v1/health/live` non-200 for 2 consecutive probes | Critical | Page on-call; follow runbook section 6.2 |
 | Rate limit spike | 429s > 10 % of requests over 5 minutes | Warning | Investigate abuse or misconfigured client |
 | Container restart | Pod/container restarted more than 2 times in 10 minutes | Warning | Check startup logs and memory limits |
 
@@ -65,10 +65,10 @@ An error budget is the allowed downtime or failures implied by the SLO.
 
 ## 5. Operational Practices
 
-- **Health and readiness probes** — all container deployments use `GET /health` for both liveness and readiness. The service is removed from the load balancer while the readiness probe is failing.
+- **Health and readiness probes** — all container deployments use `GET /api/v1/health/ready` for readiness (when service is ready for traffic) and `GET /api/v1/health/live` for liveness (when process is still alive). The service is removed from the load balancer while the readiness probe is failing.
 - **Structured logging** — every request logs method, path, status code, and duration. Logs are emitted to stdout for collection by the container runtime.
 - **Request ID tracing** — each request carries an `x-request-id` header (generated if absent). Use this to correlate log lines across services.
-- **Metrics endpoint** — `GET /metrics` returns in-process counters (total requests, health checks, shortens, redirects, analytics calls). Scrape this with Prometheus or poll it from a health dashboard.
+- **Metrics endpoint** — `GET /api/v1/metrics` returns in-process counters (total requests, health checks, shortens, redirects, analytics calls). Scrape this with Prometheus or poll it from a health dashboard.
 - **Versioned deployments** — every deploy uses a Git SHA image tag. This makes rollbacks deterministic.
 - **Change management** — all changes go through a pull request and pass CI (tests + build) before merging to `main`.
 
@@ -81,8 +81,8 @@ An error budget is the allowed downtime or failures implied by the SLO.
 **Symptoms:** Alert fires, access logs show 5xx on shorten or redirect endpoints.
 
 **Steps:**
-1. Check `GET /health` — if it returns non-200, the process itself is unhealthy (go to 6.2).
-2. Check `GET /metrics` to identify which counter has increased: `shortenCount`, `redirectCount`, or `analyticsCount`.
+1. Check `GET /api/v1/health/live` — if it returns non-200, the process itself is unhealthy (go to 6.2).
+2. Check `GET /api/v1/metrics` to identify which counter has increased: `shortenCount`, `redirectCount`, or `analyticsCount`.
 3. Tail the container logs:
    ```bash
    docker logs url-shortener --tail 100

@@ -28,6 +28,8 @@ interface AuthenticatedRequest extends Request {
 const ALLOWED_ROUTES_WITHOUT_AUTH = [
   '/',
   '/api/v1/health',
+  '/api/v1/health/live',
+  '/api/v1/health/ready',
 ];
 
 export function apiKeyAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): void {

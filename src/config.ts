@@ -74,11 +74,20 @@ function loadConfig(): AppConfig {
 
   // AI: CORS configuration (environment-aware)
   // - Dev: default to '*' for convenience
-  // - Prod: require explicit origin list for security
+  // - Prod: require explicit origin list for security (fail-secure)
   let corsOrigin: string | string[] = '*';
-  if (isProduction && process.env.CORS_ORIGIN) {
+  if (isProduction) {
+    // AI Security: Fail-closed in production
+    // Require explicit CORS_ORIGIN env var, never default to '*'
+    if (!process.env.CORS_ORIGIN) {
+      throw new Error(
+        'FATAL: Production mode requires CORS_ORIGIN env var. ' +
+        'Unset CORS_ORIGIN is a security misconfiguration. ' +
+        'Set to comma-separated origins (e.g., "https://example.com,https://app.example.com")'
+      );
+    }
     corsOrigin = process.env.CORS_ORIGIN.split(',').map((o) => o.trim());
-  } else if (!isProduction && process.env.CORS_ORIGIN) {
+  } else if (process.env.CORS_ORIGIN) {
     corsOrigin = process.env.CORS_ORIGIN.split(',').map((o) => o.trim());
   }
 

@@ -72,7 +72,7 @@ jobs:
             --ingress external \
             --cpu 0.5 \
             --memory 1.0Gi \
-            --env-vars PORT=3000
+            --env-vars PORT=3000 BASE_URL=https://$AZURE_CONTAINER_APP_NAME.azurecontainerapps.io
 
       - name: Skip deployment when Azure secrets are not configured
         if: steps.azure-config.outputs.configured != 'true'

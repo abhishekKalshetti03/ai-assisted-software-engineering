@@ -26,7 +26,9 @@ See [deploy/azure-container-apps.md](deploy/azure-container-apps.md) for provide
 
 ## Kubernetes and health probes
 
-A basic Kubernetes deployment example is available at [deploy/k8s.yaml](deploy/k8s.yaml). It includes readiness and liveness probes against /health.
+A basic Kubernetes deployment example is available at [deploy/k8s.yaml](deploy/k8s.yaml). It includes readiness and liveness probes:
+- Readiness probe: `GET /api/v1/health/ready` (when service can accept traffic)
+- Liveness probe: `GET /api/v1/health/live` (when process is still running)
 
 ## Monitoring example
 

@@ -3,10 +3,15 @@ info:
   title: URL Shortener API
   version: 1.0.0
   description: API for creating short URLs, redirecting them, and retrieving analytics.
+servers:
+  - url: /api/v1
+    description: API base path (v1)
 paths:
   /shorten:
     post:
       summary: Create a short URL
+      tags:
+        - URLs
       requestBody:
         required: true
         content:
@@ -19,6 +24,14 @@ paths:
                 url:
                   type: string
                   example: https://www.google.com
+                slug:
+                  type: string
+                  description: Optional custom slug (1-50 alphanumeric + hyphens)
+                  example: my-link
+                expiresAt:
+                  type: string
+                  description: Optional ISO 8601 expiration date (must be future)
+                  example: "2026-12-31T23:59:59Z"
       responses:
         '201':
           description: Short URL created successfully
@@ -33,11 +46,19 @@ paths:
                   shortUrl:
                     type: string
                     example: http://localhost:3000/abc123
+                  expiresAt:
+                    type: string
+                    nullable: true
+                    example: null
         '400':
-          description: Invalid URL provided
+          description: Invalid URL, slug, or expiration provided
+        '409':
+          description: Slug already exists
   /{id}:
     get:
       summary: Redirect to the original URL
+      tags:
+        - Redirects
       parameters:
         - in: path
           name: id
@@ -49,9 +70,13 @@ paths:
           description: Redirect to original URL
         '404':
           description: Short URL not found
+        '410':
+          description: Short URL has expired
   /analytics/{id}:
     get:
       summary: Get click analytics for a short URL
+      tags:
+        - Analytics
       parameters:
         - in: path
           name: id
@@ -66,8 +91,89 @@ paths:
               schema:
                 type: object
                 properties:
+                  id:
+                    type: string
+                    example: abc123
+                  originalUrl:
+                    type: string
+                    example: https://www.google.com
                   clicks:
                     type: integer
                     example: 5
+                  createdAt:
+                    type: string
+                    example: "2026-07-16T10:30:00.000Z"
+                  expiresAt:
+                    type: string
+                    nullable: true
+                    example: null
         '404':
           description: Short URL not found
+  /health/ready:
+    get:
+      summary: Readiness probe (Kubernetes)
+      tags:
+        - Health
+      description: Returns 200 when service is ready to accept traffic
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /health/live:
+    get:
+      summary: Liveness probe (Kubernetes)
+      tags:
+        - Health
+      description: Returns 200 when process is alive
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /metrics:
+    get:
+      summary: Get service metrics
+      tags:
+        - Metrics
+      responses:
+        '200':
+          description: Metrics snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestCount:
+                    type: integer
+                    example: 150
+                  shortenCount:
+                    type: integer
+                    example: 10
+                  redirectCount:
+                    type: integer
+                    example: 100
+                  analyticsCount:
+                    type: integer
+                    example: 5
+                  healthCount:
+                    type: integer
+                    example: 35
+                  uptimeSeconds:
+                    type: number
+                    example: 3600
+                  startedAt:
+                    type: string
+                    example: "2026-07-16T08:00:00Z"
