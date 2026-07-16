@@ -254,7 +254,6 @@ docker-compose --profile redis up
 ## Documentation
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — Design decisions and system architecture
-- **[ENHANCEMENTS.md](ENHANCEMENTS.md)** — Production enhancements (Code Coverage, Pre-commit Hooks, Redis, API Authentication)
 - **[SRE.md](SRE.md)** — Reliability targets, SLOs, and incident runbook
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Deployment guidance
 - **[RISK_ANALYSIS.md](RISK_ANALYSIS.md)** — Risk assessment and mitigations
