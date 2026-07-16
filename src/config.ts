@@ -30,6 +30,7 @@ export interface AppConfig {
   rateLimitMaxRequests: number;
   rateLimitWindowMs: number;
   rateLimiterBackend: 'memory' | 'redis';
+  trustProxy: string | boolean | number;
   corsOrigin: string | string[];
   redisUrl?: string;
   apiKeys?: string[];
@@ -103,6 +104,18 @@ function loadConfig(): AppConfig {
     corsOrigin = process.env.CORS_ORIGIN.split(',').map((o) => o.trim());
   }
 
+  // AI: Trust proxy configuration (important when behind a load balancer/reverse proxy)
+  // Without this, req.ip returns the proxy's IP, making rate limiting bypassable
+  // Values: false (default), true (trust all), number (hop count), or string ('loopback', etc.)
+  const trustProxyRaw = process.env.TRUST_PROXY;
+  let trustProxy: string | boolean | number = false;
+  if (trustProxyRaw) {
+    if (trustProxyRaw === 'true') trustProxy = true;
+    else if (trustProxyRaw === 'false') trustProxy = false;
+    else if (!Number.isNaN(Number(trustProxyRaw))) trustProxy = Number(trustProxyRaw);
+    else trustProxy = trustProxyRaw; // e.g., 'loopback', 'linklocal', 'uniquelocal'
+  }
+
   // AI: Redis URL for distributed rate limiting (optional)
   // If set, enables Redis-backed rate limiting instead of in-memory
   const redisUrl = process.env.REDIS_URL;
@@ -122,6 +135,7 @@ function loadConfig(): AppConfig {
     rateLimitMaxRequests,
     rateLimitWindowMs,
     rateLimiterBackend,
+    trustProxy,
     corsOrigin,
     redisUrl,
     apiKeys,

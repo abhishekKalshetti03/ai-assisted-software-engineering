@@ -117,3 +117,10 @@ function normalizeRoute(path: string): string {
 export async function renderMetrics(): Promise<string> {
   return register.metrics();
 }
+
+/**
+ * Prometheus standard Content-Type header value (text/plain; version=0.0.4; charset=utf-8)
+ * Use this header on the /api/v1/metrics endpoint so Prometheus scrapers
+ * recognise the format version correctly.
+ */
+export const metricsContentType: string = register.contentType;

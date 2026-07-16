@@ -722,4 +722,97 @@ describe('Shortener API', () => {
       expect([301, 302, 404]).toContain(response.status);
     });
   });
+
+  // ── Task 13: Additional required test cases ─────────────────────────────────
+
+  describe('fail-closed auth in production mode', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const configModule = require('../config') as { config: Record<string, unknown> };
+    let savedIsProduction: unknown;
+    let savedApiKeys: unknown;
+
+    beforeEach(() => {
+      savedIsProduction = configModule.config.isProduction;
+      savedApiKeys = configModule.config.apiKeys;
+      configModule.config.isProduction = true;
+    });
+
+    afterEach(() => {
+      configModule.config.isProduction = savedIsProduction;
+      configModule.config.apiKeys = savedApiKeys;
+    });
+
+    it('returns 500 when NODE_ENV=production with no API_KEYS configured (fail-closed)', async () => {
+      configModule.config.apiKeys = undefined;
+      const response = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'https://example.com' });
+
+      // Fail-closed: undefined keys in production is a deployment error → 500
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty('error');
+    });
+
+    it('returns 401 when NODE_ENV=production with API_KEYS set but no header', async () => {
+      configModule.config.apiKeys = ['prod-secret-key'];
+      const response = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'https://example.com' });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty('error', 'Missing x-api-key header');
+    });
+  });
+
+  describe('concurrent custom-slug creation', () => {
+    it('allows exactly one 201 and returns 409 for the rest when 10 parallel requests use the same slug', async () => {
+      const slug = `concurrent-slug-${Date.now()}`;
+      const responses = await Promise.all(
+        Array.from({ length: 10 }, () =>
+          request(app)
+            .post('/api/v1/shorten')
+            .send({ url: 'https://example.com', slug }),
+        ),
+      );
+
+      const statusCodes = responses.map((r) => r.status);
+      const created = statusCodes.filter((s) => s === 201);
+      const conflicts = statusCodes.filter((s) => s === 409);
+
+      expect(created).toHaveLength(1);
+      expect(conflicts).toHaveLength(9);
+    });
+  });
+
+  describe('SSRF prevention', () => {
+    it('rejects http://169.254.169.254/ (link-local / AWS metadata endpoint)', async () => {
+      const response = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'http://169.254.169.254/' })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+    });
+
+    it('rejects http://127.0.0.1 (loopback address)', async () => {
+      const response = await request(app)
+        .post('/api/v1/shorten')
+        .send({ url: 'http://127.0.0.1' })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+    });
+  });
+
+  describe('Prometheus metrics format', () => {
+    it('GET /api/v1/metrics returns text/plain with version=0.0.4 Content-Type', async () => {
+      const response = await request(app)
+        .get('/api/v1/metrics')
+        .expect(200);
+
+      // Prometheus standard: text/plain; version=0.0.4; charset=utf-8
+      expect(response.headers['content-type']).toMatch(/text\/plain/);
+      expect(response.headers['content-type']).toMatch(/version=0\.0\.4/);
+    });
+  });
 });

@@ -17,7 +17,7 @@ import { rateLimiter as rateLimiterMemory } from './middleware/rateLimiter';
 import { rateLimiter as rateLimiterRedis } from './middleware/rateLimiterRedis';
 import { apiKeyAuth } from './middleware/apiKeyAuth';
 import { metricsService } from './services/metricsService';
-import { prometheusMiddleware, renderMetrics, prometheusMetrics } from './middleware/prometheus';
+import { prometheusMiddleware, renderMetrics, prometheusMetrics, metricsContentType } from './middleware/prometheus';
 
 dotenv.config();
 
@@ -29,6 +29,9 @@ const app: Express = express();
 const selectedRateLimiter = config.rateLimiterBackend === 'redis' ? rateLimiterRedis : rateLimiterMemory;
 
 app.disable('x-powered-by');
+// AI: Trust proxy so req.ip reflects the real client IP behind load balancers.
+// Without this, rate limiting is bypassable via X-Forwarded-For spoofing.
+app.set('trust proxy', config.trustProxy);
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigin }));
 app.use(morgan('combined'));
@@ -66,7 +69,8 @@ app.use('/api/v1/shorten', shortenRouter);
 app.get('/api/v1/metrics', async (_req: Request, res: Response) => {
   try {
     const metrics = await renderMetrics();
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    // Use the Prometheus-standard Content-Type so scrapers recognise format version
+    res.setHeader('Content-Type', metricsContentType);
     res.status(200).send(metrics);
   } catch (error) {
     res.status(500).json({ error: 'Failed to render metrics' });

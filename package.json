@@ -9,8 +9,8 @@
     "start": "node dist/server.js",
     "lint": "tsc --noEmit",
     "test": "jest --runInBand",
-    "coverage": "nyc npm test",
-    "coverage:report": "nyc report --reporter=text-summary",
+    "coverage": "jest --runInBand --coverage",
+    "coverage:report": "jest --runInBand --coverage --coverageReporters=text-summary",
     "prepare": "husky install"
   },
   "lint-staged": {
